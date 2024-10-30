@@ -15,6 +15,9 @@
 - [2024/10] Both Interactive Region Detection Model and Icon functional description model are released! [Hugginface models](https://huggingface.co/microsoft/OmniParser)
 - [2024/09] OmniParser achieves the best performance on [Windows Agent Arena](https://microsoft.github.io/WindowsAgentArena/)! 
 
+## Fork information
+- [2024/10] Add supported devices of Mac M1/M2/M3
+
 ## Install 
 Install environment:
 ```python

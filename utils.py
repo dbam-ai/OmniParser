@@ -18,7 +18,7 @@ import numpy as np
 # %matplotlib inline
 from matplotlib import pyplot as plt
 import easyocr
-reader = easyocr.Reader(['en'])
+reader = easyocr.Reader(['en', 'ch_tra'])
 import time
 import base64
 
@@ -35,7 +35,12 @@ import torchvision.transforms as T
 
 def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2-opt-2.7b", device=None):
     if not device:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
     if model_name == "blip2":
         from transformers import Blip2Processor, Blip2ForConditionalGeneration
         processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
@@ -43,6 +48,10 @@ def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2
             model = Blip2ForConditionalGeneration.from_pretrained(
             model_name_or_path, device_map=None, torch_dtype=torch.float32
         ) 
+        elif device == 'mps':
+            model = Blip2ForConditionalGeneration.from_pretrained(
+            model_name_or_path, device_map=None, torch_dtype=torch.float32
+        ).to(device)
         else:
             model = Blip2ForConditionalGeneration.from_pretrained(
             model_name_or_path, device_map=None, torch_dtype=torch.float16
@@ -52,6 +61,8 @@ def get_caption_model_processor(model_name, model_name_or_path="Salesforce/blip2
         processor = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True)
         if device == 'cpu':
             model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float32, trust_remote_code=True)
+        elif device == 'mps':
+            model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float32, trust_remote_code=True).to(device)
         else:
             model = AutoModelForCausalLM.from_pretrained(model_name_or_path, torch_dtype=torch.float16, trust_remote_code=True).to(device)
     return {'model': model.to(device), 'processor': processor}
@@ -290,7 +301,7 @@ def predict_yolo(model, image_path, box_threshold):
 def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_in_ratio=False, ocr_bbox=None, text_scale=0.4, text_padding=5, draw_bbox_config=None, caption_model_processor=None, ocr_text=[], use_local_semantics=True, iou_threshold=0.9,prompt=None):
     """ ocr_bbox: list of xyxy format bbox
     """
-    TEXT_PROMPT = "clickable buttons on the screen"
+    TEXT_PROMPT = "clickable buttons and labels on the screen"
     # BOX_TRESHOLD = 0.02 # 0.05/0.02 for web and 0.1 for mobile
     TEXT_TRESHOLD = 0.01 # 0.9 # 0.01
     image_source = Image.open(img_path).convert("RGB")
